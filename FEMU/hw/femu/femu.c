@@ -90,6 +90,13 @@ static void nvme_write_bar(FemuCtrl *n, hwaddr offset, uint64_t data, unsigned s
         n->bar.intmc = n->bar.intms;
         break;
     case 0x14:
+        /* If first sending data, then sending enable bit */
+         if (!NVME_CC_EN(data) && !NVME_CC_EN(n->bar.cc) &&
+                 !NVME_CC_SHN(data) && !NVME_CC_SHN(n->bar.cc))
+         {
+             n->bar.cc = data;
+         }
+         
         if (NVME_CC_EN(data) && !NVME_CC_EN(n->bar.cc)) {
             n->bar.cc = data;
             if (nvme_start_ctrl(n)) {
@@ -647,6 +654,18 @@ static Property femu_props[] = {
     DEFINE_PROP_UINT8("lnum_lun", FemuCtrl, oc_params.num_lun, 8),
     DEFINE_PROP_UINT8("lnum_pln", FemuCtrl, oc_params.num_pln, 2),
     DEFINE_PROP_UINT16("lmetasize", FemuCtrl, oc_params.sos, 16),
+    DEFINE_PROP_UINT32("secsz", FemuCtrl, secsz, 512),
+    DEFINE_PROP_UINT32("secs_per_pg", FemuCtrl, secs_per_pg, 8),
+    DEFINE_PROP_UINT32("pgs_per_blk", FemuCtrl, pgs_per_blk, 256),
+    DEFINE_PROP_UINT32("blks_per_pl", FemuCtrl, blks_per_pl, 256),
+    DEFINE_PROP_UINT32("pls_per_lun", FemuCtrl, pls_per_lun, 1),
+    DEFINE_PROP_UINT32("luns_per_ch", FemuCtrl, luns_per_ch, 8),
+    DEFINE_PROP_UINT32("nchs", FemuCtrl, nchs, 8),
+    DEFINE_PROP_UINT32("pg_rd_lat", FemuCtrl, pg_rd_lat, 40000),
+    DEFINE_PROP_UINT32("pg_wr_lat", FemuCtrl, pg_wr_lat, 200000),
+    DEFINE_PROP_UINT32("blk_er_lat", FemuCtrl, blk_er_lat, 2000000),
+    DEFINE_PROP_UINT32("gc_thres_pcent", FemuCtrl, gc_thres_pcent, 75),
+    DEFINE_PROP_STRING("log_file", FemuCtrl, log_file),
     DEFINE_PROP_END_OF_LIST(),
 };
 

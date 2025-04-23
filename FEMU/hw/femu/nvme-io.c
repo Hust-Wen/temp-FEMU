@@ -313,6 +313,8 @@ uint16_t nvme_rw(FemuCtrl *n, NvmeNamespace *ns, NvmeCmd *cmd, NvmeRequest *req)
     uint64_t slba = le64_to_cpu(rw->slba);
     uint64_t prp1 = le64_to_cpu(rw->prp1);
     uint64_t prp2 = le64_to_cpu(rw->prp2);
+    uint64_t fingerprintA = le64_to_cpu(rw->rsvd2);
+    uint64_t fingerprintB = le64_to_cpu(rw->mptr);
     const uint8_t lba_index = NVME_ID_NS_FLBAS_INDEX(ns->id_ns.flbas);
     const uint16_t ms = le16_to_cpu(ns->id_ns.lbaf[lba_index].ms);
     const uint8_t data_shift = ns->id_ns.lbaf[lba_index].lbads;
@@ -341,6 +343,8 @@ uint16_t nvme_rw(FemuCtrl *n, NvmeNamespace *ns, NvmeCmd *cmd, NvmeRequest *req)
     req->slba = slba;
     req->status = NVME_SUCCESS;
     req->nlb = nlb;
+    req->fingerprint.u64[0] = fingerprintA;
+    req->fingerprint.u64[1] = fingerprintB;
 
     ret = backend_rw(n->mbe, &req->qsg, &data_offset, req->is_write);
     if (!ret) {

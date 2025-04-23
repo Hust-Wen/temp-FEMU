@@ -196,6 +196,7 @@ struct nand_cmd {
 
 struct ssd {
     char *ssdname;
+    char *log_file;
     struct ssdparams sp;
     struct ssd_channel *ch;
     struct ppa *maptbl; /* page level mapping table */

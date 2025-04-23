@@ -234,19 +234,19 @@ static void check_params(struct ssdparams *spp)
     //ftl_assert(is_power_of_2(spp->nchs));
 }
 
-static void ssd_init_params(struct ssdparams *spp)
+static void ssd_init_params(struct ssdparams *spp, FemuCtrl *n)
 {
-    spp->secsz = 512;
-    spp->secs_per_pg = 8;
-    spp->pgs_per_blk = 256;
-    spp->blks_per_pl = 256; /* 16GB */
-    spp->pls_per_lun = 1;
-    spp->luns_per_ch = 8;
-    spp->nchs = 8;
+    spp->secsz = n->secsz;
+    spp->secs_per_pg = n->secs_per_pg;
+    spp->pgs_per_blk = n->pgs_per_blk;
+    spp->blks_per_pl = n->blks_per_pl;
+    spp->pls_per_lun = n->pls_per_lun;
+    spp->luns_per_ch = n->luns_per_ch;
+    spp->nchs = n->nchs;
 
-    spp->pg_rd_lat = NAND_READ_LATENCY;
-    spp->pg_wr_lat = NAND_PROG_LATENCY;
-    spp->blk_er_lat = NAND_ERASE_LATENCY;
+    spp->pg_rd_lat = n->pg_rd_lat;
+    spp->pg_wr_lat = n->pg_wr_lat;
+    spp->blk_er_lat = n->blk_er_lat;
     spp->ch_xfer_lat = 0;
 
     /* calculated values */
@@ -276,7 +276,7 @@ static void ssd_init_params(struct ssdparams *spp)
     spp->secs_per_line = spp->pgs_per_line * spp->secs_per_pg;
     spp->tt_lines = spp->blks_per_lun; /* TODO: to fix under multiplanes */
 
-    spp->gc_thres_pcent = 0.75;
+    spp->gc_thres_pcent = (double)n->gc_thres_pcent / 100.0;
     spp->gc_thres_lines = (int)((1 - spp->gc_thres_pcent) * spp->tt_lines);
     spp->gc_thres_pcent_high = 0.95;
     spp->gc_thres_lines_high = (int)((1 - spp->gc_thres_pcent_high) * spp->tt_lines);
@@ -367,7 +367,8 @@ void ssd_init(FemuCtrl *n)
 
     ftl_assert(ssd);
 
-    ssd_init_params(spp);
+    ssd->log_file = n->log_file;
+    ssd_init_params(spp, n);
 
     /* initialize ssd internal layout architecture */
     ssd->ch = g_malloc0(sizeof(struct ssd_channel) * spp->nchs);

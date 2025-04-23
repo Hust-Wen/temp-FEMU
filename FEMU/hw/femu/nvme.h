@@ -990,6 +990,12 @@ typedef struct NvmeRequest {
     /* ZNS */
     void                    *opaque;
 
+    union {
+        uint8_t u8[16];
+        uint32_t u32[4];
+        uint64_t u64[2];
+    } fingerprint;
+
     /* position in the priority queue for delay emulation */
     size_t                  pos;
 } NvmeRequest;
@@ -1309,6 +1315,20 @@ typedef struct FemuCtrl {
     SsdDramBackend  *mbe;
     int             completed;
 
+    /* BBSSD parameters */
+    char            *log_file;
+    uint32_t        secsz;        /* sector size in bytes */
+    uint32_t        secs_per_pg;  /* # of sectors per page */
+    uint32_t        pgs_per_blk;  /* # of NAND pages per block */
+    uint32_t        blks_per_pl;  /* # of blocks per plane */
+    uint32_t        pls_per_lun;  /* # of planes per LUN (Die) */
+    uint32_t        luns_per_ch;  /* # of LUNs per channel */
+    uint32_t        nchs;         /* # of channels in the SSD */
+    uint32_t        pg_rd_lat;    /* NAND page read latency in nanoseconds */
+    uint32_t        pg_wr_lat;    /* NAND page program latency in nanoseconds */
+    uint32_t        blk_er_lat;   /* NAND block erase latency in nanoseconds */
+    uint32_t        gc_thres_pcent;
+
     char            devname[64];
     struct rte_ring **to_ftl;
     struct rte_ring **to_poller;
@@ -1493,6 +1513,16 @@ static inline uint16_t nvme_check_mdts(FemuCtrl *n, size_t len)
 #define femu_log(fmt, ...) \
     do { printf("[FEMU] Log: " fmt, ## __VA_ARGS__); } while (0)
 
-
+#define WRITE_TO_FILE(filename, mode, ...) \
+    do { \
+        FILE *file = fopen(filename, mode); \
+        if (file != NULL) { \
+            fprintf(file, __VA_ARGS__); \
+            fflush(file); \
+            fclose(file); \
+        } else { \
+            printf("Failed to open file %s\n", filename); \
+        } \
+    } while (0)
 #endif /* __FEMU_NVME_H */
 
