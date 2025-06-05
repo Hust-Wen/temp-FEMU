@@ -32,17 +32,21 @@ KB=1024
 let MB=${KB}*1024
 let GB=${MB}*1024
 
-let physical_mb=16*${GB}/${MB} # 16GB
-let logical_mb=12*${GB}/${MB} # 12GB
-let block_size=1*${MB} # 1MB
+SSD_cnt=1
+let physical_mb=64*${GB}/${MB} # 16GB
+let logical_mb=48*${GB}/${MB} # 12GB
+
+let physical_mb_per_ssd=${physical_mb}/${SSD_cnt} # 4GB
+let logical_mb_per_ssd=${logical_mb}/${SSD_cnt} # 3GB
 
 secsz=512 # sector size in bytes
 secs_per_pg=8 # number of sectors in a flash page
+let block_size=1*${MB} # 1MB
 let pgs_per_blk=${block_size}/${secs_per_pg}/${secsz} # number of pages per block
 pls_per_lun=1 # keep it at one, no multiplanes support
 luns_per_ch=8 # number of chips per channel
 nchs=8 # number of channels
-let blks_per_pl=${physical_mb}*${MB}/${nchs}/${luns_per_ch}/${pls_per_lun}/${pgs_per_blk}/${secs_per_pg}/${secsz}
+let blks_per_pl=${physical_mb_per_ssd}*${MB}/${nchs}/${luns_per_ch}/${pls_per_lun}/${pgs_per_blk}/${secs_per_pg}/${secsz}
 
 pg_rd_lat=40000 # page read latency
 pg_wr_lat=140000 # page write latency
@@ -53,7 +57,7 @@ log_file=${PWD}/femu.log
 terminal_file=${PWD}/terminal.log
 
 DEVICE_OPTIONS="-device femu"
-DEVICE_OPTIONS=${DEVICE_OPTIONS}",devsz_mb=${logical_mb}"
+DEVICE_OPTIONS=${DEVICE_OPTIONS}",devsz_mb=${logical_mb_per_ssd}"
 DEVICE_OPTIONS=${DEVICE_OPTIONS}",femu_mode=1"
 DEVICE_OPTIONS=${DEVICE_OPTIONS}",secsz=${secsz}"
 DEVICE_OPTIONS=${DEVICE_OPTIONS}",secs_per_pg=${secs_per_pg}"
@@ -69,6 +73,9 @@ DEVICE_OPTIONS=${DEVICE_OPTIONS}",gc_thres_pcent=${gc_thres_pcent}"
 DEVICE_OPTIONS=${DEVICE_OPTIONS}",log_file=${log_file}"
 
 echo "$DEVICE_OPTIONS" | sed 's/,/\n/g' > ${terminal_file}
+
+DEVICE_OPTIONS=$(printf "%s\n" $(for ((i=1; i<=$SSD_cnt; i++)); do echo "$DEVICE_OPTIONS"; done) | sed 's/ $//')
+
 # kernel_version="5.19.17HonSoffDedup"
 kernel_version="5.19.17Dedup+"
 

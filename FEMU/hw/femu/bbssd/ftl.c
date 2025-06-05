@@ -1,8 +1,11 @@
 #include "ftl.h"
+#include <assert.h>
+#include <stdint.h>
 
 //#define FEMU_DEBUG_FTL
 
 static void *ftl_thread(void *arg);
+static uint32_t ssd_cnt = 0;
 
 static inline bool should_gc(struct ssd *ssd)
 {
@@ -369,6 +372,8 @@ void ssd_init(FemuCtrl *n)
 
     ssd->log_file = n->log_file;
     ssd_init_params(spp, n);
+    ssd->last_FP_mod = -1;
+    ssd->ssd_id = ssd_cnt++;
 
     /* initialize ssd internal layout architecture */
     ssd->ch = g_malloc0(sizeof(struct ssd_channel) * spp->nchs);
@@ -884,6 +889,21 @@ static void *ftl_thread(void *arg)
             rc = femu_ring_dequeue(ssd->to_ftl[i], (void *)&req, 1);
             if (rc != 1) {
                 printf("FEMU: FTL to_ftl dequeue failed\n");
+            }
+
+            if (req->fingerprint.u64[0] != 0 || req->fingerprint.u64[1] != 0) {
+                if (req->fingerprint.u8[0] % ssd_cnt != ssd->last_FP_mod) {
+                    if (ssd->last_FP_mod != -1) {
+                      ftl_err("FTL[%d] received request with wrong fingerprint "
+                              "%lx%lx, [%d] last_FP_mod is %lu, ssd_cnt is %u\n",
+                              ssd->ssd_id,
+                              req->fingerprint.u64[0], req->fingerprint.u64[1],
+                              req->fingerprint.u8[0],
+                              ssd->last_FP_mod, ssd_cnt);
+                      continue;
+                    }
+                }
+                ssd->last_FP_mod = req->fingerprint.u8[0] % ssd_cnt;
             }
 
             ftl_assert(req);
